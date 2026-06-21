@@ -26,6 +26,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Instalación editable opcional:
+
+```bash
+pip install -e ".[dev]"
+```
+
 ## Uso
 
 Levantar la aplicación web:
