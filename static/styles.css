@@ -37,7 +37,7 @@ a {
 
 .app-shell {
   width: min(1180px, calc(100% - 32px));
-  min-height: 100vh;
+  min-height: calc(100vh - 82px);
   margin: 0 auto;
   padding: 44px 0;
   display: grid;
@@ -70,6 +70,40 @@ a {
 
 .intro h1 {
   font-size: 44px;
+}
+
+.github-link {
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink);
+  background: transparent;
+  padding: 0 12px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 800;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.github-link:hover {
+  border-color: var(--accent);
+  background: #ffffff;
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.github-link svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
 }
 
 .intro p {
@@ -243,10 +277,22 @@ a {
   overflow-wrap: anywhere;
 }
 
+.site-footer {
+  width: min(1180px, calc(100% - 32px));
+  min-height: 56px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
 @media (max-width: 860px) {
   .app-shell {
     width: min(100% - 20px, 680px);
-    padding: 18px 0;
+    min-height: auto;
+    padding: 18px 0 12px;
     grid-template-columns: 1fr;
   }
 
@@ -265,6 +311,11 @@ a {
   .preview {
     min-height: 420px;
     max-height: none;
+  }
+
+  .site-footer {
+    width: min(100% - 20px, 680px);
+    padding-bottom: 18px;
   }
 }
 
