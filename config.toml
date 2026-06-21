@@ -1,0 +1,34 @@
+[project]
+name = "mi-markitdown"
+version = "0.1.0"
+description = "Interfaz web para convertir documentos a Markdown con markitdown."
+
+[paths]
+input_dir = "input"
+output_dir = "output"
+
+[conversion]
+default_extension = ".md"
+overwrite = false
+max_upload_mb = 50
+allowed_extensions = [
+  ".csv",
+  ".docx",
+  ".epub",
+  ".html",
+  ".htm",
+  ".json",
+  ".md",
+  ".msg",
+  ".pdf",
+  ".pptx",
+  ".txt",
+  ".xls",
+  ".xlsx",
+  ".xml",
+  ".zip",
+]
+
+[logging]
+level = "INFO"
+file = "mi-markitdown.log"

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mi-Markitdown</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-labelledby="page-title">
+        <div class="intro">
+          <p class="eyebrow">Conversor local</p>
+          <h1 id="page-title">Mi-Markitdown</h1>
+          <p>Subí un documento y descargalo convertido a Markdown.</p>
+        </div>
+
+        <form class="upload-panel" id="upload-form">
+          <label class="drop-zone" id="drop-zone" for="file-input">
+            <input id="file-input" name="file" type="file" />
+            <span class="drop-icon" aria-hidden="true">MD</span>
+            <span class="drop-title">Seleccionar archivo</span>
+            <span class="drop-copy" id="file-label">PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB</span>
+          </label>
+
+          <div class="actions">
+            <button class="primary-button" id="convert-button" type="submit">
+              Convertir
+            </button>
+            <a class="secondary-button disabled" id="download-link" download="documento.md">
+              Descargar .md
+            </a>
+          </div>
+
+          <p class="status" id="status" role="status">Esperando archivo.</p>
+        </form>
+      </section>
+
+      <section class="preview-shell" aria-labelledby="preview-title">
+        <div class="preview-header">
+          <div>
+            <p class="eyebrow">Resultado</p>
+            <h2 id="preview-title">Markdown</h2>
+          </div>
+          <button class="icon-button" id="copy-button" type="button" title="Copiar Markdown" aria-label="Copiar Markdown">
+            Copiar
+          </button>
+        </div>
+        <pre class="preview" id="preview">El contenido convertido va a aparecer acá.</pre>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

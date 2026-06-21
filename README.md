@@ -9,6 +9,17 @@ Mi-Markitdown es una interfaz web para convertir archivos de distintos formatos 
 
 ## Instalación
 
+Con `pyenv-virtualenv`:
+
+```bash
+pyenv install 3.12.7
+pyenv virtualenv 3.12.7 mi-markitdown-3.12.7
+pyenv local mi-markitdown-3.12.7
+pip install -r requirements.txt
+```
+
+Alternativa con `venv`:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -20,13 +31,19 @@ pip install -r requirements.txt
 Levantar la aplicación web:
 
 ```bash
-uvicorn app:app --reload
+python app.py
 ```
 
 Luego abrir:
 
 ```text
 http://127.0.0.1:8000
+```
+
+Para desarrollo con recarga automática:
+
+```bash
+uvicorn app:app --reload
 ```
 
 También se puede usar la CLI de MarkItDown directamente:
@@ -58,11 +75,13 @@ La configuración principal está en `config.toml`.
 output_dir = "output"
 
 [conversion]
+overwrite = false
 max_upload_mb = 50
 allowed_extensions = [".pdf", ".docx", ".xlsx", ".txt"]
 ```
 
 - `paths.output_dir`: carpeta donde se guardan los Markdown generados.
+- `conversion.overwrite`: si es `false`, no pisa archivos existentes y crea nombres como `documento-1.md`.
 - `conversion.max_upload_mb`: tamaño máximo permitido por archivo.
 - `conversion.allowed_extensions`: extensiones aceptadas por la API.
 
