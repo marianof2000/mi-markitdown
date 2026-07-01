@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import subprocess
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
 import pytest
 
 from mi_markitdown import config, converter
+from mi_markitdown.engines import mineru_engine
 
 
 @dataclass
@@ -59,6 +62,17 @@ def test_home_loads() -> None:
 
     assert "Mi-Markitdown" in html
     assert "Subí un documento" in html
+
+
+def test_safe_output_name_uses_configured_extension(monkeypatch) -> None:
+    """Contrato: verificar que el nombre de salida usa la extensión configurada.
+
+    Precondiciones: `DEFAULT_EXTENSION` se reemplaza por un valor de prueba.
+    Postcondiciones: falla si el nombre seguro conserva una extensión hardcodeada.
+    """
+    monkeypatch.setattr(converter, "DEFAULT_EXTENSION", ".markdown")
+
+    assert converter.safe_output_name("mi documento.pdf") == "mi-documento.markdown"
 
 
 def test_convert_txt_file(monkeypatch, tmp_path) -> None:
@@ -149,6 +163,141 @@ def test_convert_does_not_overwrite_existing_output(monkeypatch, tmp_path) -> No
     assert payload["output_path"] == "output/nota-1.md"
     assert (output_dir / "nota.md").read_text(encoding="utf-8") == "# Existente\n"
     assert (output_dir / "nota-1.md").read_text(encoding="utf-8") == "# Nuevo\n"
+
+
+def test_find_markdown_output_prefers_matching_stem(tmp_path) -> None:
+    """Contrato: verificar que MinerU prioriza el Markdown con el mismo nombre base.
+
+    Precondiciones: la salida contiene varios Markdown generados.
+    Postcondiciones: devuelve el archivo cuyo stem coincide con el documento origen.
+    """
+    output_dir = tmp_path / "mineru-output"
+    output_dir.mkdir()
+    (output_dir / "otro.md").write_text("# Otro\n\ncontenido largo\n", encoding="utf-8")
+    expected = output_dir / "documento.md"
+    expected.write_text("# Documento\n", encoding="utf-8")
+
+    result = mineru_engine.find_markdown_output(output_dir, Path("documento.pdf"))
+
+    assert result == expected
+
+
+def test_find_markdown_output_uses_largest_file_when_no_stem_matches(tmp_path) -> None:
+    """Contrato: verificar fallback al Markdown de mayor tamaño.
+
+    Precondiciones: ningún Markdown coincide con el stem del archivo origen.
+    Postcondiciones: devuelve el archivo `.md` más grande.
+    """
+    output_dir = tmp_path / "mineru-output"
+    output_dir.mkdir()
+    small = output_dir / "a.md"
+    large = output_dir / "b.md"
+    small.write_text("# A\n", encoding="utf-8")
+    large.write_text("# B\n\ncontenido largo\n", encoding="utf-8")
+
+    result = mineru_engine.find_markdown_output(output_dir, Path("documento.pdf"))
+
+    assert result == large
+
+
+def test_find_markdown_output_requires_markdown_file(tmp_path) -> None:
+    """Contrato: verificar error cuando MinerU no genera Markdown.
+
+    Precondiciones: el directorio de salida no contiene archivos `.md`.
+    Postcondiciones: falla si no se lanza `RuntimeError`.
+    """
+    with pytest.raises(RuntimeError) as exc_info:
+        mineru_engine.find_markdown_output(tmp_path, Path("documento.pdf"))
+
+    assert "no generó ningún archivo Markdown" in str(exc_info.value)
+
+
+def test_mineru_convert_requires_cli(monkeypatch, tmp_path) -> None:
+    """Contrato: verificar error claro cuando la CLI de MinerU no está instalada.
+
+    Precondiciones: `which` se reemplaza para simular ausencia de `mineru`.
+    Postcondiciones: falla si no se lanza `RuntimeError` con instrucción de instalación.
+    """
+    source = tmp_path / "documento.pdf"
+    source.write_bytes(b"PDF")
+    monkeypatch.setattr(mineru_engine, "which", lambda _command: None)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        mineru_engine.convert_path(
+            source,
+            workspace_dir=tmp_path,
+            backend="pipeline",
+            timeout_seconds=1,
+        )
+
+    assert "MinerU no está instalado" in str(exc_info.value)
+
+
+def test_mineru_convert_reports_cli_failure(monkeypatch, tmp_path) -> None:
+    """Contrato: verificar que una falla de CLI se reporta con stderr/stdout.
+
+    Precondiciones: `subprocess.run` se reemplaza por un resultado fallido.
+    Postcondiciones: falla si el error no conserva el detalle devuelto por MinerU.
+    """
+    source = tmp_path / "documento.pdf"
+    source.write_bytes(b"PDF")
+    monkeypatch.setattr(mineru_engine, "which", lambda _command: "/usr/bin/mineru")
+
+    def fake_run(*_args, **_kwargs):
+        """Contrato: simular una ejecución fallida de MinerU.
+
+        Precondiciones: recibe argumentos compatibles con `subprocess.run`.
+        Postcondiciones: devuelve un proceso con código de error y stderr.
+        """
+        return subprocess.CompletedProcess(
+            args=["mineru"],
+            returncode=2,
+            stdout="",
+            stderr="archivo inválido",
+        )
+
+    monkeypatch.setattr(mineru_engine.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        mineru_engine.convert_path(
+            source,
+            workspace_dir=tmp_path,
+            backend="pipeline",
+            timeout_seconds=1,
+        )
+
+    assert "MinerU falló: archivo inválido" in str(exc_info.value)
+
+
+def test_mineru_convert_reports_timeout(monkeypatch, tmp_path) -> None:
+    """Contrato: verificar mensaje claro cuando MinerU supera el timeout.
+
+    Precondiciones: `subprocess.run` se reemplaza por una excepción de timeout.
+    Postcondiciones: falla si no se informa el tiempo máximo configurado.
+    """
+    source = tmp_path / "documento.pdf"
+    source.write_bytes(b"PDF")
+    monkeypatch.setattr(mineru_engine, "which", lambda _command: "/usr/bin/mineru")
+
+    def fake_run(*_args, **_kwargs):
+        """Contrato: simular una ejecución que supera el timeout.
+
+        Precondiciones: recibe argumentos compatibles con `subprocess.run`.
+        Postcondiciones: lanza `TimeoutExpired`.
+        """
+        raise subprocess.TimeoutExpired(cmd=["mineru"], timeout=3)
+
+    monkeypatch.setattr(mineru_engine.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        mineru_engine.convert_path(
+            source,
+            workspace_dir=tmp_path,
+            backend="pipeline",
+            timeout_seconds=3,
+        )
+
+    assert "superó el tiempo máximo configurado de 3 segundos" in str(exc_info.value)
 
 
 def test_rejects_unsupported_engine() -> None:

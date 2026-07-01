@@ -51,13 +51,19 @@ def convert_path(
         "-b",
         backend,
     ]
-    completed = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=timeout_seconds,
-    )
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"MinerU superó el tiempo máximo configurado de {timeout_seconds} segundos."
+        ) from exc
+
     if completed.returncode != 0:
         error = completed.stderr.strip() or completed.stdout.strip()
         raise RuntimeError(f"MinerU falló: {error}")

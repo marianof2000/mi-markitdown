@@ -179,8 +179,12 @@ async function handleCopy() {
     return;
   }
 
-  await navigator.clipboard.writeText(currentMarkdown);
-  setStatus("Markdown copiado al portapapeles.", "success");
+  try {
+    await navigator.clipboard.writeText(currentMarkdown);
+    setStatus("Markdown copiado al portapapeles.", "success");
+  } catch (_error) {
+    setStatus("No se pudo copiar el Markdown al portapapeles.", "error");
+  }
 }
 
 input.addEventListener("change", handleFileInputChange);

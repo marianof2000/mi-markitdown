@@ -138,11 +138,35 @@ input_dir = "input"
 output_dir = "output"
 
 [conversion]
+default_extension = ".md"
 default_engine = "markitdown"
 allowed_engines = ["markitdown", "mineru"]
 overwrite = false
 max_upload_mb = 50
-allowed_extensions = [".pdf", ".docx", ".xlsx", ".txt"]
+allowed_extensions = [
+  ".bmp",
+  ".csv",
+  ".docx",
+  ".epub",
+  ".html",
+  ".htm",
+  ".json",
+  ".md",
+  ".msg",
+  ".jpeg",
+  ".jpg",
+  ".pdf",
+  ".png",
+  ".pptx",
+  ".tif",
+  ".tiff",
+  ".txt",
+  ".webp",
+  ".xls",
+  ".xlsx",
+  ".xml",
+  ".zip",
+]
 
 [mineru]
 backend = "pipeline"
@@ -151,11 +175,12 @@ timeout_seconds = 1800
 
 - `paths.input_dir`: carpeta reservada para archivos de entrada si se necesitara un flujo por lotes.
 - `paths.output_dir`: carpeta donde se guardan los Markdown generados.
+- `conversion.default_extension`: extensión usada para los archivos convertidos.
 - `conversion.default_engine`: motor usado por defecto.
 - `conversion.allowed_engines`: motores disponibles para el selector web.
 - `conversion.overwrite`: si es `false`, no pisa archivos existentes.
 - `conversion.max_upload_mb`: tamaño máximo permitido por archivo.
-- `conversion.allowed_extensions`: extensiones aceptadas por la API.
+- `conversion.allowed_extensions`: extensiones aceptadas por la API; la lista completa está en `config.toml`.
 - `mineru.backend`: backend usado por la CLI de MinerU.
 - `mineru.timeout_seconds`: tiempo máximo de espera para MinerU.
 

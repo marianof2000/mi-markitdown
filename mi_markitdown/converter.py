@@ -9,6 +9,7 @@ from fastapi import HTTPException, UploadFile
 from .config import (
     ALLOWED_ENGINES,
     ALLOWED_EXTENSIONS,
+    DEFAULT_EXTENSION,
     DEFAULT_ENGINE,
     MAX_UPLOAD_BYTES,
     OUTPUT_DIR,
@@ -22,11 +23,12 @@ def safe_output_name(filename: str) -> str:
     """Contrato: generar un nombre seguro para el Markdown de salida.
 
     Precondiciones: `filename` contiene el nombre original del archivo subido.
-    Postcondiciones: devuelve un nombre terminado en `.md` sin separadores inseguros.
+    Postcondiciones: devuelve un nombre terminado en la extensión configurada sin separadores inseguros.
     """
     source_name = Path(filename).stem or "documento"
     clean_name = re.sub(r"[^A-Za-z0-9._-]+", "-", source_name).strip(".-")
-    return f"{clean_name or 'documento'}.md"
+    extension = DEFAULT_EXTENSION if DEFAULT_EXTENSION.startswith(".") else f".{DEFAULT_EXTENSION}"
+    return f"{clean_name or 'documento'}{extension}"
 
 
 def validate_upload(upload: UploadFile) -> str:

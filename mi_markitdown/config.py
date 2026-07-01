@@ -30,6 +30,7 @@ PATHS_CONFIG = CONFIG.get("paths", {})
 CONVERSION_CONFIG = CONFIG.get("conversion", {})
 MINERU_CONFIG = CONFIG.get("mineru", {})
 OUTPUT_DIR = BASE_DIR / str(PATHS_CONFIG.get("output_dir", "output"))
+DEFAULT_EXTENSION = str(CONVERSION_CONFIG.get("default_extension", ".md"))
 DEFAULT_ENGINE = str(CONVERSION_CONFIG.get("default_engine", "markitdown"))
 ALLOWED_ENGINES = {
     engine.lower()
