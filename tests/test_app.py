@@ -67,7 +67,7 @@ def test_convert_txt_file(monkeypatch, tmp_path) -> None:
     Precondiciones: el conversor se reemplaza por un doble determinístico.
     Postcondiciones: valida payload, archivo guardado y contenido Markdown.
     """
-    def fake_convert(_path):
+    def fake_convert(_path, engine, workspace_dir):
         """Contrato: simular una conversión exitosa.
 
         Precondiciones: recibe una ruta cualquiera.
@@ -83,11 +83,42 @@ def test_convert_txt_file(monkeypatch, tmp_path) -> None:
 
     assert payload == {
         "filename": "nota.md",
+        "engine": "markitdown",
         "markdown": "# Hola\n\nTexto convertido.\n",
         "output_path": "output/nota.md",
         "size": 26,
     }
     assert (output_dir / "nota.md").read_text(encoding="utf-8") == "# Hola\n\nTexto convertido.\n"
+
+
+def test_convert_with_mineru_engine(monkeypatch, tmp_path) -> None:
+    """Contrato: verificar que se puede seleccionar MinerU como motor.
+
+    Precondiciones: el conversor se reemplaza por un doble determinístico.
+    Postcondiciones: valida que el payload informe `mineru` como motor usado.
+    """
+    def fake_convert(_path, engine, workspace_dir):
+        """Contrato: simular una conversión con MinerU.
+
+        Precondiciones: recibe ruta, motor y workspace temporal.
+        Postcondiciones: devuelve Markdown fijo y valida el motor.
+        """
+        assert engine == "mineru"
+        assert workspace_dir.exists()
+        return "# MinerU\n"
+
+    output_dir = tmp_path / "output"
+    monkeypatch.setattr(converter, "convert_path_to_markdown", fake_convert)
+    monkeypatch.setattr(converter, "OUTPUT_DIR", output_dir)
+
+    payload = asyncio.run(
+        converter.convert_upload(make_upload("nota.pdf", b"PDF"), engine="mineru")
+    )
+
+    assert payload["filename"] == "nota.md"
+    assert payload["engine"] == "mineru"
+    assert payload["markdown"] == "# MinerU\n"
+    assert payload["output_path"] == "output/nota.md"
 
 
 def test_convert_does_not_overwrite_existing_output(monkeypatch, tmp_path) -> None:
@@ -96,7 +127,7 @@ def test_convert_does_not_overwrite_existing_output(monkeypatch, tmp_path) -> No
     Precondiciones: ya existe un archivo con el nombre de salida esperado.
     Postcondiciones: valida que se use un sufijo numérico para el nuevo archivo.
     """
-    def fake_convert(_path):
+    def fake_convert(_path, engine, workspace_dir):
         """Contrato: simular una conversión exitosa.
 
         Precondiciones: recibe una ruta cualquiera.
@@ -114,9 +145,25 @@ def test_convert_does_not_overwrite_existing_output(monkeypatch, tmp_path) -> No
     payload = asyncio.run(converter.convert_upload(make_upload("nota.txt", b"Hola")))
 
     assert payload["filename"] == "nota-1.md"
+    assert payload["engine"] == "markitdown"
     assert payload["output_path"] == "output/nota-1.md"
     assert (output_dir / "nota.md").read_text(encoding="utf-8") == "# Existente\n"
     assert (output_dir / "nota-1.md").read_text(encoding="utf-8") == "# Nuevo\n"
+
+
+def test_rejects_unsupported_engine() -> None:
+    """Contrato: verificar rechazo de motores no permitidos.
+
+    Precondiciones: se entrega un motor fuera de configuración.
+    Postcondiciones: falla si no se lanza `HTTPException` 400.
+    """
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            converter.convert_upload(make_upload("nota.txt", b"Hola"), engine="otro")
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "Motor no permitido" in exc_info.value.detail
 
 
 def test_rejects_file_without_extension() -> None:
@@ -183,7 +230,7 @@ def test_reports_conversion_errors(monkeypatch) -> None:
     Precondiciones: el conversor se reemplaza por un doble que falla.
     Postcondiciones: falla si el error no se traduce a `HTTPException` 422.
     """
-    def fake_convert(_path):
+    def fake_convert(_path, engine, workspace_dir):
         """Contrato: simular una falla de conversión.
 
         Precondiciones: recibe una ruta cualquiera.

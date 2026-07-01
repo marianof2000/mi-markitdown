@@ -7,15 +7,26 @@ const preview = document.querySelector("#preview");
 const convertButton = document.querySelector("#convert-button");
 const downloadLink = document.querySelector("#download-link");
 const copyButton = document.querySelector("#copy-button");
+const engineInputs = document.querySelectorAll('input[name="engine"]');
 
 let markdownBlobUrl = "";
 let currentMarkdown = "";
 
+/**
+ * Contrato: actualizar el mensaje de estado visible para el usuario.
+ * Precondiciones: `statusText` apunta al elemento de estado y `message` es texto mostrable.
+ * Postcondiciones: el texto y el estado visual quedan sincronizados en la UI.
+ */
 function setStatus(message, state = "idle") {
   statusText.textContent = message;
   statusText.dataset.state = state;
 }
 
+/**
+ * Contrato: preparar la descarga del Markdown convertido.
+ * Precondiciones: `markdown` contiene el texto generado y `filename` es el nombre de salida.
+ * Postcondiciones: el enlace de descarga apunta a un Blob vigente y queda habilitado.
+ */
 function setDownload(markdown, filename) {
   if (markdownBlobUrl) {
     URL.revokeObjectURL(markdownBlobUrl);
@@ -28,31 +39,76 @@ function setDownload(markdown, filename) {
   downloadLink.classList.remove("disabled");
 }
 
+/**
+ * Contrato: obtener el motor seleccionado en el formulario.
+ * Precondiciones: `engineInputs` contiene los radios de motores disponibles.
+ * Postcondiciones: devuelve el valor marcado o `markitdown` como valor por defecto.
+ */
+function selectedEngine() {
+  for (const engineInput of engineInputs) {
+    if (engineInput.checked) {
+      return engineInput.value;
+    }
+  }
+
+  return "markitdown";
+}
+
+/**
+ * Contrato: convertir un identificador de motor en una etiqueta legible.
+ * Precondiciones: `engine` es el valor recibido desde la API o el formulario.
+ * Postcondiciones: devuelve el nombre mostrado al usuario.
+ */
+function engineLabel(engine) {
+  return engine === "mineru" ? "MinerU" : "MarkItDown";
+}
+
+/**
+ * Contrato: reflejar en la UI el archivo seleccionado.
+ * Precondiciones: `file` es un `File` del navegador o un valor vacío.
+ * Postcondiciones: la etiqueta muestra nombre y tamaño, o el texto de formatos aceptados.
+ */
 function setSelectedFile(file) {
   fileLabel.textContent = file
     ? `${file.name} - ${(file.size / 1024 / 1024).toFixed(2)} MB`
     : "PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB";
 }
 
-input.addEventListener("change", () => {
+/**
+ * Contrato: manejar la selección manual de archivo.
+ * Precondiciones: el input de archivo puede exponer `files`.
+ * Postcondiciones: la etiqueta de archivo queda actualizada.
+ */
+function handleFileInputChange() {
   setSelectedFile(input.files[0]);
-});
-
-for (const eventName of ["dragenter", "dragover"]) {
-  dropZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    dropZone.classList.add("dragging");
-  });
 }
 
-for (const eventName of ["dragleave", "drop"]) {
-  dropZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    dropZone.classList.remove("dragging");
-  });
+/**
+ * Contrato: activar el estado visual de arrastre sobre la zona de carga.
+ * Precondiciones: `event` es un evento de drag del navegador.
+ * Postcondiciones: se previene la acción por defecto y se marca la zona como activa.
+ */
+function markDropZoneDragging(event) {
+  event.preventDefault();
+  dropZone.classList.add("dragging");
 }
 
-dropZone.addEventListener("drop", (event) => {
+/**
+ * Contrato: desactivar el estado visual de arrastre sobre la zona de carga.
+ * Precondiciones: `event` es un evento de drag o drop del navegador.
+ * Postcondiciones: se previene la acción por defecto y se limpia el estado activo.
+ */
+function clearDropZoneDragging(event) {
+  event.preventDefault();
+  dropZone.classList.remove("dragging");
+}
+
+/**
+ * Contrato: aceptar un archivo soltado sobre la zona de carga.
+ * Precondiciones: `event.dataTransfer` puede contener archivos.
+ * Postcondiciones: el primer archivo queda asignado al input y visible en la etiqueta.
+ */
+function handleDrop(event) {
   const file = event.dataTransfer.files[0];
   if (!file) return;
 
@@ -60,9 +116,14 @@ dropZone.addEventListener("drop", (event) => {
   dataTransfer.items.add(file);
   input.files = dataTransfer.files;
   setSelectedFile(file);
-});
+}
 
-form.addEventListener("submit", async (event) => {
+/**
+ * Contrato: enviar el archivo seleccionado a la API de conversión.
+ * Precondiciones: el formulario existe y puede contener un archivo seleccionado.
+ * Postcondiciones: actualiza vista previa, descarga y estado, o muestra el error recibido.
+ */
+async function handleSubmit(event) {
   event.preventDefault();
 
   const file = input.files[0];
@@ -73,6 +134,7 @@ form.addEventListener("submit", async (event) => {
 
   const body = new FormData();
   body.append("file", file);
+  body.append("engine", selectedEngine());
 
   convertButton.disabled = true;
   downloadLink.classList.add("disabled");
@@ -94,7 +156,7 @@ form.addEventListener("submit", async (event) => {
     preview.textContent = currentMarkdown || "La conversión no devolvió contenido.";
     setDownload(currentMarkdown, payload.filename || "documento.md");
     setStatus(
-      `Conversión lista - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`,
+      `Conversión lista con ${engineLabel(payload.engine)} - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`,
       "success",
     );
   } catch (error) {
@@ -104,9 +166,14 @@ form.addEventListener("submit", async (event) => {
   } finally {
     convertButton.disabled = false;
   }
-});
+}
 
-copyButton.addEventListener("click", async () => {
+/**
+ * Contrato: copiar el Markdown convertido al portapapeles.
+ * Precondiciones: el navegador expone `navigator.clipboard` y puede haber Markdown actual.
+ * Postcondiciones: copia el Markdown o informa que todavía no hay contenido para copiar.
+ */
+async function handleCopy() {
   if (!currentMarkdown) {
     setStatus("Todavía no hay Markdown para copiar.", "error");
     return;
@@ -114,4 +181,18 @@ copyButton.addEventListener("click", async () => {
 
   await navigator.clipboard.writeText(currentMarkdown);
   setStatus("Markdown copiado al portapapeles.", "success");
-});
+}
+
+input.addEventListener("change", handleFileInputChange);
+
+for (const eventName of ["dragenter", "dragover"]) {
+  dropZone.addEventListener(eventName, markDropZoneDragging);
+}
+
+for (const eventName of ["dragleave", "drop"]) {
+  dropZone.addEventListener(eventName, clearDropZoneDragging);
+}
+
+dropZone.addEventListener("drop", handleDrop);
+form.addEventListener("submit", handleSubmit);
+copyButton.addEventListener("click", handleCopy);

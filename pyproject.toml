@@ -20,12 +20,15 @@ dependencies = [
 dev = [
   "pytest>=8.0.0",
 ]
+mineru = [
+  "mineru[all]",
+]
 
 [project.scripts]
 mi-markitdown = "app:main"
 
-[tool.setuptools]
-packages = ["mi_markitdown"]
+[tool.setuptools.packages.find]
+include = ["mi_markitdown*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

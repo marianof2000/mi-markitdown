@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import STATIC_DIR, TEMPLATES_DIR
+from .config import DEFAULT_ENGINE, STATIC_DIR, TEMPLATES_DIR
 from .converter import convert_upload
 
 
@@ -27,12 +27,15 @@ def create_app() -> FastAPI:
         return FileResponse(TEMPLATES_DIR / "index.html")
 
     @app.post("/api/convert")
-    async def convert_file(file: UploadFile = File(...)) -> JSONResponse:
+    async def convert_file(
+        file: UploadFile = File(...),
+        engine: str = Form(DEFAULT_ENGINE),
+    ) -> JSONResponse:
         """Contrato: exponer la conversión de archivos por HTTP.
 
-        Precondiciones: la petición incluye un campo multipart `file`.
+        Precondiciones: la petición incluye un campo multipart `file` y opcionalmente `engine`.
         Postcondiciones: devuelve JSON con el Markdown y su ruta guardada, o error HTTP.
         """
-        return JSONResponse(await convert_upload(file))
+        return JSONResponse(await convert_upload(file, engine=engine))
 
     return app

@@ -16,6 +16,18 @@
         </div>
 
         <form class="upload-panel" id="upload-form">
+          <fieldset class="engine-field" aria-label="Motor de conversión">
+            <legend>Motor</legend>
+            <label class="engine-option">
+              <input type="radio" name="engine" value="markitdown" checked />
+              <span>MarkItDown</span>
+            </label>
+            <label class="engine-option">
+              <input type="radio" name="engine" value="mineru" />
+              <span>MinerU</span>
+            </label>
+          </fieldset>
+
           <label class="drop-zone" id="drop-zone" for="file-input">
             <input id="file-input" name="file" type="file" />
             <span class="drop-icon" aria-hidden="true">MD</span>

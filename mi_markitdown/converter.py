@@ -3,18 +3,19 @@ from __future__ import annotations
 import re
 import tempfile
 from pathlib import Path
-from typing import Any
 
 from fastapi import HTTPException, UploadFile
-from markitdown import MarkItDown
 
 from .config import (
+    ALLOWED_ENGINES,
     ALLOWED_EXTENSIONS,
+    DEFAULT_ENGINE,
     MAX_UPLOAD_BYTES,
     OUTPUT_DIR,
     OVERWRITE_OUTPUT,
     READ_CHUNK_BYTES,
 )
+from .engines import convert_with_engine
 
 
 def safe_output_name(filename: str) -> str:
@@ -54,27 +55,33 @@ def validate_upload(upload: UploadFile) -> str:
     return suffix
 
 
-def extract_markdown(result: Any) -> str:
-    """Contrato: obtener texto Markdown desde el resultado de MarkItDown.
+def validate_engine(engine: str) -> str:
+    """Contrato: validar el motor de conversión solicitado.
 
-    Precondiciones: `result` puede exponer `text_content`, `markdown` o ser convertible a texto.
-    Postcondiciones: devuelve una cadena con el contenido convertido.
+    Precondiciones: `engine` proviene del formulario o de la configuración.
+    Postcondiciones: devuelve el motor normalizado o lanza `HTTPException`.
     """
-    for attribute in ("text_content", "markdown"):
-        value = getattr(result, attribute, None)
-        if isinstance(value, str):
-            return value
-    return str(result)
+    normalized_engine = (engine or DEFAULT_ENGINE).strip().lower()
+    if normalized_engine not in ALLOWED_ENGINES:
+        allowed = ", ".join(sorted(ALLOWED_ENGINES))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Motor no permitido. Motores aceptados: {allowed}",
+        )
+    return normalized_engine
 
 
-def convert_path_to_markdown(path: Path) -> str:
-    """Contrato: convertir un archivo local a Markdown usando MarkItDown.
+def convert_path_to_markdown(
+    path: Path,
+    engine: str,
+    workspace_dir: Path,
+) -> str:
+    """Contrato: convertir un archivo local a Markdown usando un motor disponible.
 
-    Precondiciones: `path` apunta a un archivo existente y legible por el proceso.
+    Precondiciones: `path` existe, `engine` está validado y `workspace_dir` es escribible.
     Postcondiciones: devuelve Markdown o propaga el error de conversión.
     """
-    result = MarkItDown(enable_plugins=False).convert(path)
-    return extract_markdown(result)
+    return convert_with_engine(path, engine=engine, workspace_dir=workspace_dir)
 
 
 def next_available_path(path: Path) -> Path:
@@ -115,17 +122,22 @@ def save_markdown(
     return output_path
 
 
-async def convert_upload(file: UploadFile) -> dict[str, str | int]:
+async def convert_upload(
+    file: UploadFile,
+    engine: str = DEFAULT_ENGINE,
+) -> dict[str, str | int]:
     """Contrato: convertir un upload a Markdown, guardarlo y describir el resultado.
 
     Precondiciones: `file` permite lecturas async por chunks y cierre async.
-    Postcondiciones: devuelve nombre, contenido, ruta de salida y tamaño, o lanza `HTTPException`.
+    Postcondiciones: devuelve nombre, motor, contenido, ruta de salida y tamaño, o lanza `HTTPException`.
     """
     suffix = validate_upload(file)
+    selected_engine = validate_engine(engine)
 
     try:
         with tempfile.TemporaryDirectory(prefix="mi-markitdown-") as temp_dir:
-            temp_path = Path(temp_dir) / f"upload{suffix}"
+            workspace_dir = Path(temp_dir)
+            temp_path = workspace_dir / f"upload{suffix}"
             size = 0
 
             with temp_path.open("wb") as destination:
@@ -145,7 +157,11 @@ async def convert_upload(file: UploadFile) -> dict[str, str | int]:
                 )
 
             try:
-                markdown = convert_path_to_markdown(temp_path)
+                markdown = convert_path_to_markdown(
+                    temp_path,
+                    engine=selected_engine,
+                    workspace_dir=workspace_dir,
+                )
             except Exception as exc:  # noqa: BLE001 - send a clear conversion error to the UI
                 raise HTTPException(
                     status_code=422,
@@ -159,6 +175,7 @@ async def convert_upload(file: UploadFile) -> dict[str, str | int]:
 
     return {
         "filename": output_path.name,
+        "engine": selected_engine,
         "markdown": markdown,
         "output_path": str(output_path.relative_to(OUTPUT_DIR.parent)),
         "size": len(markdown.encode("utf-8")),

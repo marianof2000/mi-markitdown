@@ -9,9 +9,15 @@ output_dir = "output"
 
 [conversion]
 default_extension = ".md"
+default_engine = "markitdown"
+allowed_engines = [
+  "markitdown",
+  "mineru",
+]
 overwrite = false
 max_upload_mb = 50
 allowed_extensions = [
+  ".bmp",
   ".csv",
   ".docx",
   ".epub",
@@ -20,9 +26,15 @@ allowed_extensions = [
   ".json",
   ".md",
   ".msg",
+  ".jpeg",
+  ".jpg",
   ".pdf",
+  ".png",
   ".pptx",
+  ".tif",
+  ".tiff",
   ".txt",
+  ".webp",
   ".xls",
   ".xlsx",
   ".xml",
@@ -32,3 +44,7 @@ allowed_extensions = [
 [logging]
 level = "INFO"
 file = "mi-markitdown.log"
+
+[mineru]
+backend = "pipeline"
+timeout_seconds = 1800

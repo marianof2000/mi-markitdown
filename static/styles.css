@@ -126,6 +126,47 @@ a {
   gap: 18px;
 }
 
+.engine-field {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+}
+
+.engine-field legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.engine-option {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.engine-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.engine-option input {
+  accent-color: var(--accent);
+}
+
 .drop-zone {
   min-height: 260px;
   border: 2px dashed #9ab5aa;
@@ -325,8 +366,10 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .actions {
+  .actions,
+  .engine-field {
     display: grid;
+    grid-template-columns: 1fr;
   }
 
   .preview-header {
