@@ -21,27 +21,29 @@ Mi-Markitdown es una interfaz web local para convertir documentos a Markdown usa
 ## Requisitos
 
 - Python 3.12
-- `pip`
-- Un entorno virtual activo
+- [`uv`](https://docs.astral.sh/uv/)
 
 ## Instalación
 
-Con `pyenv-virtualenv`:
+Clonar el repositorio e instalar dependencias de desarrollo:
 
 ```bash
-pyenv install 3.12.7
-pyenv virtualenv 3.12.7 mi-markitdown-3.12.7
-pyenv local mi-markitdown-3.12.7
-pip install -r requirements.txt
+git clone https://github.com/marianof2000/mi-markitdown.git
+cd mi-markitdown
+uv sync --extra dev
 ```
 
 Si también querés usar MinerU:
 
 ```bash
-pip install -r requirements-mineru.txt
+uv sync --extra dev --extra mineru
 ```
 
-Alternativa con `venv`:
+`uv` crea y mantiene el entorno virtual local en `.venv/`, que está ignorado por git. El archivo `uv.lock` sí debe versionarse para conservar instalaciones reproducibles.
+
+Los archivos `requirements.txt` y `requirements-mineru.txt` se mantienen solo como alternativa legacy para flujos basados en `pip`; la fuente principal de dependencias es `pyproject.toml`.
+
+Alternativa legacy con `pip`:
 
 ```bash
 python -m venv .venv
@@ -49,22 +51,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Con `venv` y MinerU:
+Alternativa legacy con MinerU:
 
 ```bash
 pip install -r requirements-mineru.txt
-```
-
-Instalación editable opcional, útil para desarrollo:
-
-```bash
-pip install -e ".[dev]"
-```
-
-Instalación opcional de MinerU:
-
-```bash
-pip install -e ".[mineru]"
 ```
 
 MinerU puede requerir modelos, más memoria, más espacio en disco, más procesamiento de CPU y más tiempo de conversión que MarkItDown. La configuración incluida usa el backend `pipeline` para CPU.
@@ -74,7 +64,7 @@ MinerU puede requerir modelos, más memoria, más espacio en disco, más procesa
 Levantar la aplicación web:
 
 ```bash
-python app.py
+uv run python app.py
 ```
 
 Luego abrir:
@@ -86,7 +76,7 @@ http://127.0.0.1:8000
 Para desarrollo con recarga automática:
 
 ```bash
-uvicorn app:app --reload
+uv run uvicorn app:app --reload
 ```
 
 También se puede usar la CLI de MarkItDown directamente:
@@ -227,9 +217,11 @@ Errores contemplados:
 |-- pyproject.toml
 |-- README.md
 |-- requirements.txt
+|-- requirements-mineru.txt
 |-- static/
 |-- templates/
 |-- tests/
+|-- uv.lock
 `-- .gitignore
 ```
 
@@ -247,14 +239,16 @@ Errores contemplados:
 ## Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
 El `pyproject.toml` configura `pytest` para ejecutar la suite con salida resumida.
 
 ## Notas de desarrollo
 
-- Mantener sincronizadas las dependencias de `requirements.txt` y `pyproject.toml`.
+- Usar `pyproject.toml` como fuente principal de dependencias.
+- Instalar el entorno local con `uv sync --extra dev`.
+- Instalar MinerU solo cuando haga falta con `uv sync --extra dev --extra mineru`.
 - Evitar commitear archivos generados, documentos cargados, entornos virtuales o datos sensibles.
 - Documentar nuevos comandos de uso en este README.
 - El soporte para `markitdown-ocr` queda como mejora futura: requiere habilitar plugins y configurar cliente/modelo LLM.
