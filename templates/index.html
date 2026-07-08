@@ -4,15 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mi-Markitdown</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <script>
+      (() => {
+        try {
+          const storedTheme = localStorage.getItem("theme");
+          if (storedTheme) {
+            document.documentElement.dataset.theme = storedTheme;
+          }
+        } catch (_error) {
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/static/styles.css?v=dark-mode-2" />
   </head>
   <body>
     <main class="app-shell">
       <section class="workspace" aria-labelledby="page-title">
-        <div class="intro">
-          <p class="eyebrow">Conversor local</p>
-          <h1 id="page-title">Mi-Markitdown</h1>
-          <p>Subí un documento y descargalo convertido a Markdown.</p>
+        <div class="topbar">
+          <div class="intro">
+            <p class="eyebrow">Conversor local</p>
+            <h1 id="page-title">Mi-Markitdown</h1>
+            <p>Subí un documento y descargalo convertido a Markdown.</p>
+          </div>
+          <button class="theme-toggle" id="theme-toggle" type="button" title="Cambiar tema" aria-label="Cambiar a modo oscuro">
+            <span aria-hidden="true">☾</span>
+          </button>
         </div>
 
         <form class="upload-panel" id="upload-form">
@@ -78,6 +94,39 @@
       </a>
     </footer>
 
-    <script src="/static/app.js"></script>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const toggle = document.querySelector("#theme-toggle");
+        if (!toggle) return;
+
+        const icon = toggle.querySelector("span");
+        const systemPrefersDark = () =>
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const activeTheme = () => root.dataset.theme || (systemPrefersDark() ? "dark" : "light");
+        const saveTheme = (theme) => {
+          try {
+            localStorage.setItem("theme", theme);
+          } catch (_error) {
+          }
+        };
+        const syncToggle = () => {
+          const isDark = activeTheme() === "dark";
+          toggle.setAttribute("aria-label", isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro");
+          if (icon) {
+            icon.textContent = isDark ? "☀" : "☾";
+          }
+        };
+
+        toggle.addEventListener("click", () => {
+          const nextTheme = activeTheme() === "dark" ? "light" : "dark";
+          root.dataset.theme = nextTheme;
+          saveTheme(nextTheme);
+          syncToggle();
+        });
+        syncToggle();
+      })();
+    </script>
+    <script src="/static/app.js?v=dark-mode-2"></script>
   </body>
 </html>

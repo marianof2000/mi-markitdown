@@ -1,16 +1,78 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --bg: #f6f7f4;
+  --bg-gradient: linear-gradient(180deg, rgba(215, 238, 231, 0.6), rgba(246, 247, 244, 0) 320px);
   --ink: #17201a;
   --muted: #647067;
   --line: #d9dfd9;
   --panel: #ffffff;
+  --button-panel: #ffffff;
+  --drop-bg: #fafdf8;
+  --drop-border: #9ab5aa;
+  --preview-bg: #101512;
+  --preview-ink: #e7f0ea;
   --accent: #176b5b;
   --accent-dark: #0f4c40;
   --accent-soft: #d7eee7;
   --warn: #9b2c2c;
   --ok: #176b38;
   --shadow: 0 20px 60px rgba(23, 32, 26, 0.12);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101411;
+  --bg-gradient: linear-gradient(
+    180deg,
+    rgba(24, 72, 64, 0.54),
+    rgba(16, 20, 17, 0) 330px
+  );
+  --ink: #eef5ef;
+  --muted: #a7b4aa;
+  --line: #32413a;
+  --panel: #18201b;
+  --button-panel: #202a24;
+  --drop-bg: #141b17;
+  --drop-border: #557065;
+  --preview-bg: #080c0a;
+  --preview-ink: #e9f4ec;
+  --accent: #58c7ab;
+  --accent-dark: #8de2cd;
+  --accent-soft: #173d34;
+  --warn: #ff9a9a;
+  --ok: #8ddeaa;
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101411;
+    --bg-gradient: linear-gradient(
+      180deg,
+      rgba(24, 72, 64, 0.54),
+      rgba(16, 20, 17, 0) 330px
+    );
+    --ink: #eef5ef;
+    --muted: #a7b4aa;
+    --line: #32413a;
+    --panel: #18201b;
+    --button-panel: #202a24;
+    --drop-bg: #141b17;
+    --drop-border: #557065;
+    --preview-bg: #080c0a;
+    --preview-ink: #e9f4ec;
+    --accent: #58c7ab;
+    --accent-dark: #8de2cd;
+    --accent-soft: #173d34;
+    --warn: #ff9a9a;
+    --ok: #8ddeaa;
+    --shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+  }
 }
 
 * {
@@ -20,9 +82,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(215, 238, 231, 0.6), rgba(246, 247, 244, 0) 320px),
-    var(--bg);
+  background: var(--bg-gradient), var(--bg);
   color: var(--ink);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -33,6 +93,13 @@ button,
 input,
 a {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .app-shell {
@@ -72,6 +139,38 @@ a {
   font-size: 44px;
 }
 
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 16px;
+  align-items: start;
+}
+
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--button-panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 21px;
+  font-weight: 800;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
 .github-link {
   min-height: 40px;
   border: 1px solid transparent;
@@ -95,7 +194,7 @@ a {
 
 .github-link:hover {
   border-color: var(--accent);
-  background: #ffffff;
+  background: var(--button-panel);
   color: var(--accent);
   transform: translateY(-1px);
 }
@@ -169,8 +268,8 @@ a {
 
 .drop-zone {
   min-height: 260px;
-  border: 2px dashed #9ab5aa;
-  background: #fafdF8;
+  border: 2px dashed var(--drop-border);
+  background: var(--drop-bg);
   display: grid;
   place-items: center;
   gap: 10px;
@@ -257,7 +356,7 @@ a {
 
 .secondary-button,
 .icon-button {
-  background: #ffffff;
+  background: var(--button-panel);
   border-color: var(--line);
   color: var(--ink);
 }
@@ -309,8 +408,8 @@ a {
   margin: 0;
   padding: 22px;
   overflow: auto;
-  background: #101512;
-  color: #e7f0ea;
+  background: var(--preview-bg);
+  color: var(--preview-ink);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 14px;
   line-height: 1.58;
