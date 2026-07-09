@@ -5,17 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mi-Markitdown</title>
     <link rel="icon" href="/favicon.ico" sizes="32x32">
-    <script>
-      (() => {
-        try {
-          const storedTheme = localStorage.getItem("theme");
-          if (storedTheme) {
-            document.documentElement.dataset.theme = storedTheme;
-          }
-        } catch (_error) {}
-      })();
-    </script>
-    <link rel="stylesheet" href="/static/styles.css?v=ui-feedback-2">
+    <script src="/static/theme.js?v=workflow-1"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=workflow-1">
   </head>
   <body>
     <main class="app-shell">
@@ -52,7 +43,12 @@
           </fieldset>
 
           <label class="drop-zone" id="drop-zone">
-            <input id="file-input" name="file" type="file">
+            <input
+              id="file-input"
+              name="file"
+              type="file"
+              accept=".bmp,.csv,.docx,.epub,.html,.htm,.json,.md,.msg,.jpeg,.jpg,.pdf,.png,.pptx,.tif,.tiff,.txt,.webp,.xls,.xlsx,.xml,.zip"
+            >
             <span class="drop-icon" aria-hidden="true">MD</span>
             <span class="drop-title">Seleccionar archivo</span>
             <span class="drop-copy" id="file-label">PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB</span>
@@ -101,48 +97,6 @@
       </a>
     </footer>
 
-    <script>
-      (() => {
-        const root = document.documentElement;
-        const toggle = document.querySelector("#theme-toggle");
-        if (!toggle) return;
-
-        const icon = toggle.querySelector("span");
-        const systemPrefersDark = () => {
-          return (
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches
-          );
-        };
-        const activeTheme = () => {
-          return root.dataset.theme || (systemPrefersDark() ? "dark" : "light");
-        };
-        const saveTheme = (theme) => {
-          try {
-            localStorage.setItem("theme", theme);
-          } catch (_error) {}
-        };
-        const syncToggle = () => {
-          const isDark = activeTheme() === "dark";
-          toggle.setAttribute(
-            "aria-label",
-            isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
-          );
-          toggle.setAttribute("aria-pressed", String(isDark));
-          if (icon) {
-            icon.textContent = isDark ? "☀" : "☾";
-          }
-        };
-
-        toggle.addEventListener("click", () => {
-          const nextTheme = activeTheme() === "dark" ? "light" : "dark";
-          root.dataset.theme = nextTheme;
-          saveTheme(nextTheme);
-          syncToggle();
-        });
-        syncToggle();
-      })();
-    </script>
-    <script src="/static/app.js?v=ui-feedback-2"></script>
+    <script src="/static/app.js?v=workflow-1"></script>
   </body>
 </html>

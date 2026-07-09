@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
+import httpx
 import pytest
 
-from mi_markitdown import config, converter
+from mi_markitdown import config, converter, web
 from mi_markitdown.engines import mineru_engine
 
 
@@ -52,6 +54,17 @@ def make_upload(filename: str, content: bytes, _content_type: str = "text/plain"
     return FakeUploadFile(filename=filename, content=content)  # type: ignore[return-value]
 
 
+async def request_app(method: str, path: str, **kwargs) -> httpx.Response:
+    """Contrato: ejecutar una petición HTTP contra la app ASGI en memoria.
+
+    Precondiciones: `method` y `path` describen una petición válida para la app.
+    Postcondiciones: devuelve la respuesta HTTP sin levantar un servidor externo.
+    """
+    transport = httpx.ASGITransport(app=web.create_app())
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        return await client.request(method, path, **kwargs)
+
+
 def test_home_loads() -> None:
     """Contrato: verificar que el HTML principal contiene textos esperados.
 
@@ -63,7 +76,91 @@ def test_home_loads() -> None:
     assert "Mi-Markitdown" in html
     assert "Subí un documento" in html
     assert '<link rel="icon" href="/favicon.ico" sizes="32x32">' in html
+    assert '<script src="/static/theme.js?v=workflow-1"></script>' in html
+    assert '<script src="/static/app.js?v=workflow-1"></script>' in html
     assert (config.STATIC_DIR / "favicon.ico").is_file()
+
+    accept_match = re.search(r'accept="([^"]+)"', html)
+    assert accept_match is not None
+    assert set(accept_match.group(1).split(",")) == config.ALLOWED_EXTENSIONS
+
+
+def test_web_home_route_loads() -> None:
+    """Contrato: verificar que la ruta principal sirve la interfaz web.
+
+    Precondiciones: la app FastAPI puede construirse.
+    Postcondiciones: falla si `GET /` no devuelve HTML de la aplicación.
+    """
+    response = asyncio.run(request_app("GET", "/"))
+
+    assert response.status_code == 200
+    assert "Mi-Markitdown" in response.text
+
+
+def test_web_favicon_route_loads() -> None:
+    """Contrato: verificar que el favicon está disponible en la ruta estándar.
+
+    Precondiciones: `static/favicon.ico` existe.
+    Postcondiciones: falla si `GET /favicon.ico` no devuelve contenido binario.
+    """
+    response = asyncio.run(request_app("GET", "/favicon.ico"))
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"\x00\x00\x01\x00")
+
+
+def test_web_health_route_returns_ok() -> None:
+    """Contrato: verificar el endpoint básico de salud.
+
+    Precondiciones: la app FastAPI puede construirse.
+    Postcondiciones: falla si `GET /health` no devuelve estado OK.
+    """
+    response = asyncio.run(request_app("GET", "/health"))
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_web_convert_route_returns_payload(monkeypatch) -> None:
+    """Contrato: verificar el contrato HTTP básico de conversión.
+
+    Precondiciones: el conversor web se reemplaza por un doble determinístico.
+    Postcondiciones: valida que `POST /api/convert` devuelva JSON serializable.
+    """
+    async def fake_convert_upload(file, engine):
+        """Contrato: simular la conversión desde la capa web.
+
+        Precondiciones: recibe un upload y el motor solicitado.
+        Postcondiciones: devuelve un payload compatible con la API real.
+        """
+        assert file.filename == "nota.txt"
+        assert engine == "markitdown"
+        return {
+            "filename": "nota.md",
+            "engine": engine,
+            "markdown": "# Nota\n",
+            "output_path": "output/nota.md",
+            "size": 7,
+        }
+
+    monkeypatch.setattr(web, "convert_upload", fake_convert_upload)
+    response = asyncio.run(
+        request_app(
+            "POST",
+            "/api/convert",
+            data={"engine": "markitdown"},
+            files={"file": ("nota.txt", b"Hola", "text/plain")},
+        )
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "filename": "nota.md",
+        "engine": "markitdown",
+        "markdown": "# Nota\n",
+        "output_path": "output/nota.md",
+        "size": 7,
+    }
 
 
 def test_safe_output_name_uses_configured_extension(monkeypatch) -> None:
@@ -233,6 +330,32 @@ def test_mineru_convert_requires_cli(monkeypatch, tmp_path) -> None:
         )
 
     assert "MinerU no está instalado" in str(exc_info.value)
+
+
+def test_convert_reports_missing_mineru_with_install_hint(monkeypatch) -> None:
+    """Contrato: verificar mensaje accionable cuando falta MinerU.
+
+    Precondiciones: el conversor simula una ausencia de CLI MinerU.
+    Postcondiciones: falla si el error no sugiere instalación o cambio de motor.
+    """
+    def fake_convert(_path, engine, workspace_dir):
+        """Contrato: simular ausencia de MinerU durante la conversión.
+
+        Precondiciones: recibe ruta, motor y workspace temporal.
+        Postcondiciones: lanza el mismo tipo de error que el motor real.
+        """
+        raise RuntimeError("MinerU no está instalado.")
+
+    monkeypatch.setattr(converter, "convert_path_to_markdown", fake_convert)
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            converter.convert_upload(make_upload("documento.pdf", b"PDF"), engine="mineru")
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "uv sync --extra dev --extra mineru" in exc_info.value.detail
+    assert "elegí MarkItDown" in exc_info.value.detail
 
 
 def test_mineru_convert_reports_cli_failure(monkeypatch, tmp_path) -> None:

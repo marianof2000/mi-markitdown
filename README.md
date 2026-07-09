@@ -1,31 +1,35 @@
 # Mi-Markitdown
 
-Mi-Markitdown es una interfaz web local para convertir documentos a Markdown usando dos motores: [`microsoft/markitdown`](https://github.com/microsoft/markitdown) y, de forma opcional, [`opendatalab/MinerU`](https://github.com/opendatalab/MinerU). Permite subir un archivo desde el navegador, elegir el motor de conversión, ver el Markdown generado, descargarlo y guardarlo automáticamente en un directorio de salida del proyecto.
+[Versión en español](README.es.md)
 
-## Secciones
+Mi-Markitdown is a local web interface for converting documents to Markdown using two engines: [`microsoft/markitdown`](https://github.com/microsoft/markitdown) and, optionally, [`opendatalab/MinerU`](https://github.com/opendatalab/MinerU). It lets you upload a file from the browser, choose the conversion engine, view the generated Markdown, download it, and automatically save it to an output directory in the project.
 
-- [Requisitos](#requisitos)
-- [Instalación](#instalación)
-- [Uso](#uso)
-- [Funcionamiento](#funcionamiento)
-- [Motores de conversión](#motores-de-conversión)
-- [Formatos soportados](#formatos-soportados)
-- [Configuración](#configuración)
-- [API](#api)
-- [Estructura](#estructura)
-- [Arquitectura](#arquitectura)
-- [Tests](#tests)
-- [Notas de desarrollo](#notas-de-desarrollo)
-- [¿Por qué Markdown para IA?](#por-qué-markdown-para-ia)
+## Sections
 
-## Requisitos
+* [Requirements](#requirements)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Quick workflow](#quick-workflow)
+* [How it works](#how-it-works)
+* [Conversion engines](#conversion-engines)
+* [Supported formats](#supported-formats)
+* [Configuration](#configuration)
+* [API](#api)
+* [Structure](#structure)
+* [Architecture](#architecture)
+* [Tests](#tests)
+* [Development notes](#development-notes)
+* [Why Markdown for AI?](#why-markdown-for-ai)
+* [License](#license)
 
-- Python 3.12
-- [`uv`](https://docs.astral.sh/uv/)
+## Requirements
 
-## Instalación
+* Python 3.12
+* [`uv`](https://docs.astral.sh/uv/)
 
-Clonar el repositorio y sincronizar el entorno local:
+## Installation
+
+Clone the repository and synchronize the local environment:
 
 ```bash
 git clone https://github.com/marianof2000/mi-markitdown.git
@@ -33,78 +37,94 @@ cd mi-markitdown
 uv sync --extra dev
 ```
 
-`uv` crea y mantiene el entorno virtual local en `.venv/`, que está ignorado por git. Las dependencias se declaran en `pyproject.toml` y las versiones resueltas quedan fijadas en `uv.lock`.
+`uv` creates and maintains the local virtual environment in `.venv/`, which is ignored by git. Dependencies are declared in `pyproject.toml`, and the resolved versions are pinned in `uv.lock`.
 
-Si también querés usar MinerU, instalá el extra opcional:
+If you also want to use MinerU, install the optional extra:
 
 ```bash
 uv sync --extra dev --extra mineru
 ```
 
-MinerU puede requerir modelos, más memoria, más espacio en disco, más procesamiento de CPU y más tiempo de conversión que MarkItDown. La configuración incluida usa el backend `pipeline` para CPU.
+MinerU may require models, more memory, more disk space, more CPU processing, and longer conversion times than MarkItDown. The included configuration uses the `pipeline` backend for CPU.
 
-## Uso
+## Usage
 
-Levantar la aplicación web:
+Start the web application:
 
 ```bash
 uv run python app.py
 ```
 
-Luego abrir:
+Then open:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Para desarrollo con recarga automática:
+For development with automatic reload:
 
 ```bash
 uv run uvicorn app:app --reload
 ```
 
-También se puede usar la CLI de MarkItDown directamente:
+You can also use the MarkItDown CLI directly:
 
 ```bash
-uv run markitdown archivo.pdf > archivo.md
+uv run markitdown file.pdf > file.md
 ```
 
-Si MinerU está instalado, también se puede usar desde línea de comandos:
+If MinerU is installed, it can also be used from the command line:
 
 ```bash
-uv run mineru -p archivo.pdf -o output/mineru -b pipeline
+uv run mineru -p file.pdf -o output/mineru -b pipeline
 ```
 
-MinerU genera su salida dentro del directorio indicado con `-o`; entre esos archivos se incluye el Markdown convertido.
+MinerU generates its output inside the directory specified with `-o`; those files include the converted Markdown.
 
-## Funcionamiento
+## Quick workflow
 
-La aplicación recibe el archivo subido, lo copia a un directorio temporal del sistema, lo convierte con el motor elegido y elimina esa copia temporal al terminar. El archivo original no se usa desde su ruta de origen.
+1. Open `http://127.0.0.1:8000`.
+2. Choose the conversion engine: `MarkItDown` or `MinerU`.
+3. Select or drag and drop a supported file.
+4. Press `Convert`.
+5. Review the generated Markdown in the preview.
+6. Download the `.md` file or copy the content to the clipboard.
 
-Después de cada conversión:
+During conversion, the screen shows the current step of the process. When finished, it reports the engine used, the elapsed time, the saved path, and the size of the generated Markdown.
 
-- El Markdown se muestra en la vista previa.
-- El navegador permite descargar el `.md`.
-- El Markdown generado se guarda en el directorio configurado en `paths.output_dir`; por defecto, `output/`.
-- El selector de motor permite convertir con `MarkItDown` o con `MinerU` si está instalado.
-- Si `overwrite = false`, no se pisan archivos existentes: se generan nombres como `documento-1.md`.
+## How it works
 
-Los archivos cargados y los generados por conversión no deben entrar al repositorio. Por eso `input/`, `output/`, `uploads/`, `exports/` y `tmp/` están ignorados por git.
+The application receives the uploaded file, copies it to a temporary system directory, converts it with the selected engine, and deletes that temporary copy when finished. The original file is not used from its source path.
 
-## Motores de conversión
+After each conversion:
 
-La aplicación puede trabajar con dos motores:
+* The Markdown is shown in the preview.
+* The browser lets you download the `.md` file.
+* The generated Markdown is saved in the directory configured in `paths.output_dir`; by default, `output/`.
+* The status message confirms the conversion and reports how long it took.
+* The engine selector allows conversion with `MarkItDown` or with `MinerU` if installed.
+* If `overwrite = false`, existing files are not overwritten: names such as `document-1.md` are generated.
 
-- [`MarkItDown`](https://github.com/microsoft/markitdown): es el motor por defecto. Suele ser más rápido y liviano para conversiones generales.
-- [`MinerU`](https://github.com/opendatalab/MinerU): es opcional y puede producir resultados más precisos, especialmente en documentos PDF complejos, pero consume más procesamiento de CPU y tarda más tiempo.
+Uploaded files and files generated by conversion should not be committed to the repository. For that reason, `input/`, `output/`, `uploads/`, `exports/`, and `tmp/` are ignored by git.
 
-## Formatos soportados
+## Conversion engines
 
-La app acepta formatos comunes soportados por MarkItDown, incluyendo PDF, Word, PowerPoint, Excel, HTML, CSV, JSON, XML, TXT, ZIP y EPUB. La lista editable está en `config.toml`.
+The application can work with two engines:
 
-## Configuración
+* [`MarkItDown`](https://github.com/microsoft/markitdown): the default engine. It is usually faster and lighter for general conversions.
+* [`MinerU`](https://github.com/opendatalab/MinerU): optional. It can produce more accurate results, especially for complex PDF documents, but it consumes more CPU processing and takes longer.
 
-La configuración principal está en `config.toml`.
+If you choose MinerU and the optional dependency is not installed, the interface displays an actionable error with two options: install MinerU with `uv sync --extra dev --extra mineru` or convert again with MarkItDown.
+
+## Supported formats
+
+The app accepts common formats supported by MarkItDown, including PDF, Word, PowerPoint, Excel, HTML, CSV, JSON, XML, TXT, ZIP, and EPUB. The editable list is in `config.toml`.
+
+The browser file selector uses those extensions as an initial filter to make it easier to choose valid documents. Final validation is always performed in the backend.
+
+## Configuration
+
+The main configuration is in `config.toml`.
 
 ```toml
 [paths]
@@ -147,59 +167,76 @@ backend = "pipeline"
 timeout_seconds = 1800
 ```
 
-- `paths.input_dir`: carpeta reservada para archivos de entrada si se necesitara un flujo por lotes.
-- `paths.output_dir`: carpeta donde se guardan los Markdown generados.
-- `conversion.default_extension`: extensión usada para los archivos convertidos.
-- `conversion.default_engine`: motor usado por defecto.
-- `conversion.allowed_engines`: motores disponibles para el selector web.
-- `conversion.overwrite`: si es `false`, no pisa archivos existentes.
-- `conversion.max_upload_mb`: tamaño máximo permitido por archivo.
-- `conversion.allowed_extensions`: extensiones aceptadas por la API; la lista completa está en `config.toml`.
-- `mineru.backend`: backend usado por la CLI de MinerU.
-- `mineru.timeout_seconds`: tiempo máximo de espera para MinerU.
+* `paths.input_dir`: folder reserved for input files if a batch workflow is needed.
+* `paths.output_dir`: folder where generated Markdown files are saved.
+* `conversion.default_extension`: extension used for converted files.
+* `conversion.default_engine`: default engine.
+* `conversion.allowed_engines`: engines available in the web selector.
+* `conversion.overwrite`: if `false`, existing files are not overwritten.
+* `conversion.max_upload_mb`: maximum allowed size per file.
+* `conversion.allowed_extensions`: extensions accepted by the API; the full list is in `config.toml`.
+* `mineru.backend`: backend used by the MinerU CLI.
+* `mineru.timeout_seconds`: maximum wait time for MinerU.
 
 ## API
 
-La interfaz usa el endpoint:
+The interface uses the conversion endpoint:
 
 ```text
 POST /api/convert
 ```
 
-Debe enviarse un formulario `multipart/form-data` con el campo `file` y opcionalmente `engine` (`markitdown` o `mineru`).
+A `multipart/form-data` form must be sent with the `file` field and, optionally, `engine` (`markitdown` or `mineru`).
 
-Respuesta exitosa:
+Successful response:
 
 ```json
 {
-  "filename": "documento.md",
+  "filename": "document.md",
   "engine": "markitdown",
-  "markdown": "# Contenido convertido",
-  "output_path": "output/documento.md",
+  "markdown": "# Converted content",
+  "output_path": "output/document.md",
   "size": 22
 }
 ```
 
-Errores contemplados:
+Handled errors:
 
-- Archivo sin nombre.
-- Archivo sin extensión.
-- Extensión no permitida.
-- Archivo vacío.
-- Archivo que supera el límite de tamaño.
-- Motor de conversión no permitido.
-- Error interno de conversión del motor elegido.
+* File without a name.
+* File without an extension.
+* Extension not allowed.
+* Empty file.
+* File exceeding the size limit.
+* Conversion engine not allowed.
+* Internal conversion error from the selected engine.
+* MinerU selected without the optional dependency installed.
 
-## Estructura
+It also exposes a simple health endpoint for external checks:
+
+```text
+GET /health
+```
+
+Response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Structure
 
 ```text
 .
 |-- AGENTS.md
 |-- app.py
 |-- config.toml
+|-- LICENSE
 |-- mi_markitdown/
 |-- pyproject.toml
 |-- README.md
+|-- README.es.md
 |-- requirements.txt
 |-- requirements-mineru.txt
 |-- static/
@@ -209,16 +246,16 @@ Errores contemplados:
 `-- .gitignore
 ```
 
-## Arquitectura
+## Architecture
 
-- `app.py`: punto de entrada para `uv run python app.py` y `uv run uvicorn app:app`.
-- `mi_markitdown/config.py`: carga `config.toml` y expone rutas, límites y extensiones.
-- `mi_markitdown/converter.py`: valida uploads, coordina el motor elegido, guarda el `.md` y arma la respuesta.
-- `mi_markitdown/engines/`: contiene las funciones separadas para `MarkItDown` y `MinerU`.
-- `mi_markitdown/web.py`: crea la aplicación FastAPI y registra rutas.
-- `static/`: JavaScript y estilos de la interfaz.
-- `templates/`: HTML principal.
-- `tests/`: tests de casos felices y casos borde.
+* `app.py`: entry point for `uv run python app.py` and `uv run uvicorn app:app`.
+* `mi_markitdown/config.py`: loads `config.toml` and exposes paths, limits, and extensions.
+* `mi_markitdown/converter.py`: validates uploads, coordinates the selected engine, saves the `.md` file, and builds the response.
+* `mi_markitdown/engines/`: contains separate functions for `MarkItDown` and `MinerU`.
+* `mi_markitdown/web.py`: creates the FastAPI application and registers web, API, and health routes.
+* `static/`: JavaScript and styles for the interface.
+* `templates/`: main HTML template.
+* `tests/`: tests for happy paths and edge cases.
 
 ## Tests
 
@@ -226,32 +263,40 @@ Errores contemplados:
 uv run pytest
 ```
 
-El `pyproject.toml` configura `pytest` para ejecutar la suite con salida resumida.
+`pyproject.toml` configures `pytest` to run the suite with summarized output. The suite covers conversion validations, engines, main web routes, favicon, health, and the basic contract of `POST /api/convert`.
 
-## Notas de desarrollo
+## Development notes
 
-- Usar `pyproject.toml` como fuente principal de dependencias.
-- Versionar `uv.lock` para mantener instalaciones reproducibles.
-- Instalar el entorno local con `uv sync --extra dev`.
-- Instalar MinerU solo cuando haga falta con `uv sync --extra dev --extra mineru`.
-- Los archivos `requirements.txt` y `requirements-mineru.txt` se mantienen solo como compatibilidad legacy para flujos externos basados en `pip`; no son la fuente principal del proyecto.
-- Evitar commitear archivos generados, documentos cargados, entornos virtuales o datos sensibles.
-- Documentar nuevos comandos de uso en este README.
-- El soporte para `markitdown-ocr` queda como mejora futura: requiere habilitar plugins y configurar cliente/modelo LLM.
+* Use `pyproject.toml` as the main source of dependencies.
+* Version `uv.lock` to keep installations reproducible.
+* Install the local environment with `uv sync --extra dev`.
+* Install MinerU only when needed with `uv sync --extra dev --extra mineru`.
+* The `requirements.txt` and `requirements-mineru.txt` files are kept only for legacy compatibility with external `pip`-based workflows; they are not the main source for the project.
+* Avoid committing generated files, uploaded documents, virtual environments, or sensitive data.
+* Document new usage commands in this README.
+* Support for `markitdown-ocr` remains a future improvement: it requires enabling plugins and configuring an LLM client/model.
 
-## ¿Por qué Markdown para IA?
+## Why Markdown for AI?
 
-Convertir documentos a Markdown facilita el uso de contenidos en herramientas de Inteligencia Artificial, modelos de lenguaje, sistemas RAG y pipelines de análisis de texto. Muchos formatos originales, como PDF, Word, PowerPoint o Excel, incluyen información visual, estilos, metadatos y estructuras internas que pueden dificultar la extracción limpia del contenido.
+Converting documents to Markdown makes it easier to use content in Artificial Intelligence tools, language models, RAG systems, and text analysis pipelines. Many original formats, such as PDF, Word, PowerPoint, or Excel, include visual information, styles, metadata, and internal structures that can make clean content extraction difficult.
 
-Markdown, en cambio, es texto plano con estructura explícita. Permite conservar títulos, subtítulos, listas, tablas simples y bloques de código de una forma fácil de procesar.
+Markdown, by contrast, is plain text with explicit structure. It preserves headings, subheadings, lists, simple tables, and code blocks in an easy-to-process format.
 
-Ventajas principales:
+Main advantages:
 
-- Texto más limpio y con menos ruido visual.
-- Mejor interpretación por modelos de lenguaje.
-- Mayor compatibilidad con editores, Git, notebooks y herramientas de IA.
-- Mejor control de versiones.
-- Fragmentación más simple para sistemas RAG.
-- Trazabilidad más clara del contenido usado por una IA.
+* Cleaner text with less visual noise.
+* Better interpretation by language models.
+* Greater compatibility with editors, Git, notebooks, and AI tools.
+* Better version control.
+* Simpler chunking for RAG systems.
+* Clearer traceability of the content used by an AI.
 
-Convertir a Markdown no reemplaza al documento original. En muchos casos conviene conservar ambos: el original como fuente primaria y el Markdown como formato optimizado para procesamiento automático.
+Converting to Markdown does not replace the original document. In many cases, it is advisable to keep both: the original as the primary source and the Markdown as the format optimized for automatic processing.
+
+## License
+
+The original source code in this repository is distributed under the MIT License.
+
+The original teaching materials —notes, assignments, presentations, guides, and texts— are distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0), unless otherwise stated.
+
+Third-party materials retain their respective licenses and copyrights.

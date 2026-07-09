@@ -11,6 +11,7 @@ const engineInputs = document.querySelectorAll('input[name="engine"]');
 
 let markdownBlobUrl = "";
 let currentMarkdown = "";
+let progressTimer = 0;
 
 /**
  * Contrato: evitar navegación antes de que exista un Markdown descargable.
@@ -31,6 +32,37 @@ function handleDownloadClick(event) {
 function setStatus(message, state = "idle") {
   statusText.textContent = message;
   statusText.dataset.state = state;
+}
+
+/**
+ * Contrato: mostrar pasos de espera mientras la API procesa la conversión.
+ * Precondiciones: hay una conversión en curso.
+ * Postcondiciones: actualiza el estado con mensajes no porcentuales hasta que se detenga.
+ */
+function startConversionProgress(engine) {
+  const steps = [
+    "Subiendo archivo...",
+    `Procesando con ${engineLabel(engine)}...`,
+    "Preparando Markdown...",
+  ];
+  let stepIndex = 0;
+
+  window.clearInterval(progressTimer);
+  setStatus(steps[stepIndex], "busy");
+  progressTimer = window.setInterval(() => {
+    stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+    setStatus(steps[stepIndex], "busy");
+  }, 1200);
+}
+
+/**
+ * Contrato: detener los mensajes de progreso de conversión.
+ * Precondiciones: puede haber un temporizador activo.
+ * Postcondiciones: no quedan actualizaciones periódicas pendientes.
+ */
+function stopConversionProgress() {
+  window.clearInterval(progressTimer);
+  progressTimer = 0;
 }
 
 /**
@@ -161,12 +193,13 @@ async function handleSubmit(event) {
   }
 
   const body = new FormData();
+  const engine = selectedEngine();
   body.append("file", file);
-  body.append("engine", selectedEngine());
+  body.append("engine", engine);
 
   convertButton.disabled = true;
   downloadLink.classList.add("disabled");
-  setStatus("Convirtiendo archivo...", "busy");
+  startConversionProgress(engine);
   preview.textContent = "";
   const startedAt = performance.now();
 
@@ -182,6 +215,7 @@ async function handleSubmit(event) {
     }
 
     currentMarkdown = payload.markdown || "";
+    setStatus("Guardando Markdown...", "busy");
     preview.textContent = currentMarkdown || "La conversión no devolvió contenido.";
     setDownload(currentMarkdown, payload.filename || "documento.md");
     const elapsedTime = formatElapsedTime(performance.now() - startedAt);
@@ -194,6 +228,7 @@ async function handleSubmit(event) {
     preview.textContent = "No hay contenido para mostrar.";
     setStatus(error.message, "error");
   } finally {
+    stopConversionProgress();
     convertButton.disabled = false;
   }
 }

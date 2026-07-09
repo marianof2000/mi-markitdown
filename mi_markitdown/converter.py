@@ -86,6 +86,21 @@ def convert_path_to_markdown(
     return convert_with_engine(path, engine=engine, workspace_dir=workspace_dir)
 
 
+def conversion_error_detail(engine: str, error: Exception) -> str:
+    """Contrato: construir un mensaje claro para errores de conversión.
+
+    Precondiciones: `engine` está normalizado y `error` describe la falla del motor.
+    Postcondiciones: devuelve un texto apto para mostrar en la interfaz web.
+    """
+    if engine == "mineru" and "MinerU no está instalado" in str(error):
+        return (
+            "MinerU no está instalado. Instalá las dependencias opcionales con "
+            "`uv sync --extra dev --extra mineru` o elegí MarkItDown."
+        )
+
+    return f"No se pudo convertir el archivo: {error}"
+
+
 def next_available_path(path: Path) -> Path:
     """Contrato: resolver una ruta disponible sin sobrescribir archivos existentes.
 
@@ -167,7 +182,7 @@ async def convert_upload(
             except Exception as exc:  # noqa: BLE001 - send a clear conversion error to the UI
                 raise HTTPException(
                     status_code=422,
-                    detail=f"No se pudo convertir el archivo: {exc}",
+                    detail=conversion_error_detail(selected_engine, exc),
                 ) from exc
     finally:
         await file.close()
