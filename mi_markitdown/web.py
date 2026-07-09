@@ -26,6 +26,15 @@ def create_app() -> FastAPI:
         """
         return FileResponse(TEMPLATES_DIR / "index.html")
 
+    @app.get("/favicon.ico", response_class=FileResponse, include_in_schema=False)
+    async def favicon() -> FileResponse:
+        """Contrato: servir el favicon principal de la aplicación.
+
+        Precondiciones: `static/favicon.ico` existe y es legible.
+        Postcondiciones: devuelve el icono para navegadores y pestañas.
+        """
+        return FileResponse(STATIC_DIR / "favicon.ico")
+
     @app.post("/api/convert")
     async def convert_file(
         file: UploadFile = File(...),

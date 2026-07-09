@@ -13,6 +13,17 @@ let markdownBlobUrl = "";
 let currentMarkdown = "";
 
 /**
+ * Contrato: evitar navegación antes de que exista un Markdown descargable.
+ * Precondiciones: `event` es un click sobre el enlace de descarga.
+ * Postcondiciones: si el enlace está deshabilitado, cancela la navegación.
+ */
+function handleDownloadClick(event) {
+  if (downloadLink.classList.contains("disabled")) {
+    event.preventDefault();
+  }
+}
+
+/**
  * Contrato: actualizar el mensaje de estado visible para el usuario.
  * Precondiciones: `statusText` apunta al elemento de estado y `message` es texto mostrable.
  * Postcondiciones: el texto y el estado visual quedan sincronizados en la UI.
@@ -61,6 +72,23 @@ function selectedEngine() {
  */
 function engineLabel(engine) {
   return engine === "mineru" ? "MinerU" : "MarkItDown";
+}
+
+/**
+ * Contrato: convertir una duración en un texto breve para la UI.
+ * Precondiciones: `milliseconds` es una duración no negativa medida en milisegundos.
+ * Postcondiciones: devuelve una etiqueta en milisegundos o segundos.
+ */
+function formatElapsedTime(milliseconds) {
+  if (milliseconds < 1000) {
+    return `${Math.round(milliseconds)} ms`;
+  }
+
+  const seconds = milliseconds / 1000;
+  return `${seconds.toLocaleString("es-AR", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  })} s`;
 }
 
 /**
@@ -140,6 +168,7 @@ async function handleSubmit(event) {
   downloadLink.classList.add("disabled");
   setStatus("Convirtiendo archivo...", "busy");
   preview.textContent = "";
+  const startedAt = performance.now();
 
   try {
     const response = await fetch("/api/convert", {
@@ -155,8 +184,9 @@ async function handleSubmit(event) {
     currentMarkdown = payload.markdown || "";
     preview.textContent = currentMarkdown || "La conversión no devolvió contenido.";
     setDownload(currentMarkdown, payload.filename || "documento.md");
+    const elapsedTime = formatElapsedTime(performance.now() - startedAt);
     setStatus(
-      `Conversión lista con ${engineLabel(payload.engine)} - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`,
+      `Se convirtió con ${engineLabel(payload.engine)} en ${elapsedTime} - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`,
       "success",
     );
   } catch (error) {
@@ -200,3 +230,4 @@ for (const eventName of ["dragleave", "drop"]) {
 dropZone.addEventListener("drop", handleDrop);
 form.addEventListener("submit", handleSubmit);
 copyButton.addEventListener("click", handleCopy);
+downloadLink.addEventListener("click", handleDownloadClick);

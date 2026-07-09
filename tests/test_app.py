@@ -62,6 +62,8 @@ def test_home_loads() -> None:
 
     assert "Mi-Markitdown" in html
     assert "Subí un documento" in html
+    assert '<link rel="icon" href="/favicon.ico" sizes="32x32">' in html
+    assert (config.STATIC_DIR / "favicon.ico").is_file()
 
 
 def test_safe_output_name_uses_configured_extension(monkeypatch) -> None:
