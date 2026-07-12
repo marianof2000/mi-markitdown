@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="$html_lang">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mi-Markitdown</title>
+    <title>$page_title</title>
     <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <script>window.MI_MARKITDOWN_I18N = $i18n_json;</script>
     <script src="/static/theme.js?v=workflow-1"></script>
     <link rel="stylesheet" href="/static/styles.css?v=workflow-1">
   </head>
@@ -13,16 +14,16 @@
       <section class="workspace" aria-labelledby="page-title">
         <div class="topbar">
           <div class="intro">
-            <p class="eyebrow">Conversor local</p>
+            <p class="eyebrow">$eyebrow_converter</p>
             <h1 id="page-title">Mi-Markitdown</h1>
-            <p>Subí un documento y descargalo convertido a Markdown.</p>
+            <p>$intro_copy</p>
           </div>
           <button
             class="theme-toggle"
             id="theme-toggle"
             type="button"
-            title="Cambiar tema"
-            aria-label="Cambiar a modo oscuro"
+            title="$theme_title"
+            aria-label="$theme_aria"
             aria-pressed="false"
           >
             <span aria-hidden="true">☾</span>
@@ -30,8 +31,8 @@
         </div>
 
         <form class="upload-panel" id="upload-form">
-          <fieldset class="engine-field" aria-label="Motor de conversión">
-            <legend>Motor</legend>
+          <fieldset class="engine-field" aria-label="$engine_aria">
+            <legend>$engine_legend</legend>
             <label class="engine-option">
               <input type="radio" name="engine" value="markitdown" checked>
               <span>MarkItDown</span>
@@ -50,34 +51,34 @@
               accept=".bmp,.csv,.docx,.epub,.html,.htm,.json,.md,.msg,.jpeg,.jpg,.pdf,.png,.pptx,.tif,.tiff,.txt,.webp,.xls,.xlsx,.xml,.zip"
             >
             <span class="drop-icon" aria-hidden="true">MD</span>
-            <span class="drop-title">Seleccionar archivo</span>
-            <span class="drop-copy" id="file-label">PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB</span>
+            <span class="drop-title">$drop_title</span>
+            <span class="drop-copy" id="file-label">$file_label</span>
           </label>
 
           <div class="actions">
             <button class="primary-button" id="convert-button" type="submit">
-              Convertir
+              $convert_button
             </button>
             <a class="secondary-button disabled" id="download-link" href="#" download="documento.md">
-              Descargar .md
+              $download_button
             </a>
           </div>
 
-          <p class="status" id="status" role="status">Esperando archivo.</p>
+          <p class="status" id="status" role="status">$waiting_status</p>
         </form>
       </section>
 
       <section class="preview-shell" aria-labelledby="preview-title">
         <div class="preview-header">
           <div>
-            <p class="eyebrow">Resultado</p>
+            <p class="eyebrow">$result_eyebrow</p>
             <h2 id="preview-title">Markdown</h2>
           </div>
-          <button class="icon-button" id="copy-button" type="button" title="Copiar Markdown" aria-label="Copiar Markdown">
-            Copiar
+          <button class="icon-button" id="copy-button" type="button" title="$copy_title" aria-label="$copy_title">
+            $copy_button
           </button>
         </div>
-        <pre class="preview" id="preview">El contenido convertido va a aparecer acá.</pre>
+        <pre class="preview" id="preview">$preview_empty</pre>
       </section>
     </main>
 
@@ -87,8 +88,8 @@
         href="https://github.com/marianof2000/mi-markitdown"
         target="_blank"
         rel="noopener noreferrer"
-        title="Abrir repositorio de Mi-Markitdown en GitHub"
-        aria-label="Abrir repositorio de Mi-Markitdown en GitHub"
+        title="$github_title"
+        aria-label="$github_label"
       >
         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
           <path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.69 5.47 7.78.4.08.55-.18.55-.4 0-.2-.01-.84-.01-1.53-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.16-.28-.16-.68-.55-.01-.56.63-.01 1.08.59 1.23.84.72 1.24 1.87.89 2.33.68.07-.53.28-.89.51-1.1-1.78-.21-3.64-.91-3.64-4.04 0-.89.31-1.62.82-2.19-.08-.21-.36-1.04.08-2.16 0 0 .67-.22 2.2.84A7.43 7.43 0 0 1 8 3.97c.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.12.16 1.95.08 2.16.51.57.82 1.3.82 2.19 0 3.14-1.87 3.83-3.65 4.04.29.26.54.75.54 1.51 0 1.1-.01 1.98-.01 2.25 0 .22.15.48.55.4A8.04 8.04 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path>

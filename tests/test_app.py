@@ -65,16 +65,17 @@ async def request_app(method: str, path: str, **kwargs) -> httpx.Response:
         return await client.request(method, path, **kwargs)
 
 
-def test_home_loads() -> None:
-    """Contrato: verificar que el HTML principal contiene textos esperados.
+def test_home_template_contains_i18n_placeholders() -> None:
+    """Contrato: verificar que el template principal conserva placeholders i18n.
 
     Precondiciones: el template principal existe.
-    Postcondiciones: falla si el contenido base de la UI no está presente.
+    Postcondiciones: falla si faltan placeholders necesarios para renderizar idiomas.
     """
     html = (config.TEMPLATES_DIR / "index.html").read_text(encoding="utf-8")
 
     assert "Mi-Markitdown" in html
-    assert "Subí un documento" in html
+    assert "$intro_copy" in html
+    assert "$i18n_json" in html
     assert '<link rel="icon" href="/favicon.ico" sizes="32x32">' in html
     assert '<script src="/static/theme.js?v=workflow-1"></script>' in html
     assert '<script src="/static/app.js?v=workflow-1"></script>' in html
@@ -85,16 +86,44 @@ def test_home_loads() -> None:
     assert set(accept_match.group(1).split(",")) == config.ALLOWED_EXTENSIONS
 
 
-def test_web_home_route_loads() -> None:
-    """Contrato: verificar que la ruta principal sirve la interfaz web.
+def test_web_home_route_loads_in_english_by_default() -> None:
+    """Contrato: verificar que la ruta principal sirve inglés por defecto.
 
     Precondiciones: la app FastAPI puede construirse.
-    Postcondiciones: falla si `GET /` no devuelve HTML de la aplicación.
+    Postcondiciones: falla si `GET /` no devuelve HTML localizado en inglés.
     """
     response = asyncio.run(request_app("GET", "/"))
 
     assert response.status_code == 200
-    assert "Mi-Markitdown" in response.text
+    assert '<html lang="en">' in response.text
+    assert "Upload a document" in response.text
+    assert "Waiting for a file." in response.text
+
+
+def test_web_home_route_uses_spanish_accept_language() -> None:
+    """Contrato: verificar que la ruta principal respeta navegadores en español.
+
+    Precondiciones: la petición incluye `Accept-Language` con preferencia `es`.
+    Postcondiciones: falla si `GET /` no devuelve HTML localizado en español.
+    """
+    response = asyncio.run(
+        request_app("GET", "/", headers={"Accept-Language": "es-AR,es;q=0.9"})
+    )
+
+    assert response.status_code == 200
+    assert '<html lang="es">' in response.text
+    assert "Subí un documento" in response.text
+    assert "Esperando archivo." in response.text
+
+
+def test_select_language_respects_quality_priority() -> None:
+    """Contrato: verificar que la selección de idioma respeta prioridades HTTP.
+
+    Precondiciones: `Accept-Language` incluye idiomas soportados con distintos `q`.
+    Postcondiciones: falla si se elige por orden textual en lugar de prioridad.
+    """
+    assert web.select_language("fr,es;q=0.3,en;q=0.9") == "en"
+    assert web.select_language("fr,en;q=0.3,es;q=0.9") == "es"
 
 
 def test_web_favicon_route_loads() -> None:
@@ -330,6 +359,7 @@ def test_mineru_convert_requires_cli(monkeypatch, tmp_path) -> None:
         )
 
     assert "MinerU no está instalado" in str(exc_info.value)
+    assert "uv sync --extra dev --extra mineru" in str(exc_info.value)
 
 
 def test_convert_reports_missing_mineru_with_install_hint(monkeypatch) -> None:

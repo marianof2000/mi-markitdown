@@ -36,7 +36,7 @@ def convert_path(
     """
     if which("mineru") is None:
         raise RuntimeError(
-            "MinerU no está instalado. Instalalo con pip install -e \".[mineru]\"."
+            "MinerU no está instalado. Instalalo con `uv sync --extra dev --extra mineru`."
         )
 
     output_dir = workspace_dir / "mineru-output"

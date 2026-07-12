@@ -8,6 +8,7 @@ const convertButton = document.querySelector("#convert-button");
 const downloadLink = document.querySelector("#download-link");
 const copyButton = document.querySelector("#copy-button");
 const engineInputs = document.querySelectorAll('input[name="engine"]');
+const messages = window.MI_MARKITDOWN_I18N || {};
 
 let markdownBlobUrl = "";
 let currentMarkdown = "";
@@ -22,6 +23,18 @@ function handleDownloadClick(event) {
   if (downloadLink.classList.contains("disabled")) {
     event.preventDefault();
   }
+}
+
+/**
+ * Contrato: obtener un texto localizado y reemplazar variables simples.
+ * Precondiciones: `key` identifica un mensaje y `fallback` contiene el texto de respaldo.
+ * Postcondiciones: devuelve el texto traducido o el fallback con variables reemplazadas.
+ */
+function t(key, fallback, values = {}) {
+  const template = messages[key] || fallback;
+  return Object.entries(values).reduce((text, [name, value]) => {
+    return text.replaceAll(`{${name}}`, value);
+  }, template);
 }
 
 /**
@@ -41,9 +54,9 @@ function setStatus(message, state = "idle") {
  */
 function startConversionProgress(engine) {
   const steps = [
-    "Subiendo archivo...",
-    `Procesando con ${engineLabel(engine)}...`,
-    "Preparando Markdown...",
+    t("uploading_file", "Subiendo archivo..."),
+    t("processing_with", `Procesando con ${engineLabel(engine)}...`, { engine: engineLabel(engine) }),
+    t("preparing_markdown", "Preparando Markdown..."),
   ];
   let stepIndex = 0;
 
@@ -117,7 +130,7 @@ function formatElapsedTime(milliseconds) {
   }
 
   const seconds = milliseconds / 1000;
-  return `${seconds.toLocaleString("es-AR", {
+  return `${seconds.toLocaleString(messages.locale || "es-AR", {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
   })} s`;
@@ -131,7 +144,7 @@ function formatElapsedTime(milliseconds) {
 function setSelectedFile(file) {
   fileLabel.textContent = file
     ? `${file.name} - ${(file.size / 1024 / 1024).toFixed(2)} MB`
-    : "PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB";
+    : t("file_label", "PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, TXT, ZIP o EPUB");
 }
 
 /**
@@ -188,7 +201,7 @@ async function handleSubmit(event) {
 
   const file = input.files[0];
   if (!file) {
-    setStatus("Seleccioná un archivo primero.", "error");
+    setStatus(t("select_file_first", "Seleccioná un archivo primero."), "error");
     return;
   }
 
@@ -211,21 +224,26 @@ async function handleSubmit(event) {
 
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(payload.detail || "No se pudo convertir el archivo.");
+      throw new Error(payload.detail || t("conversion_failed", "No se pudo convertir el archivo."));
     }
 
     currentMarkdown = payload.markdown || "";
-    setStatus("Guardando Markdown...", "busy");
-    preview.textContent = currentMarkdown || "La conversión no devolvió contenido.";
+    setStatus(t("saving_markdown", "Guardando Markdown..."), "busy");
+    preview.textContent = currentMarkdown || t("empty_conversion", "La conversión no devolvió contenido.");
     setDownload(currentMarkdown, payload.filename || "documento.md");
     const elapsedTime = formatElapsedTime(performance.now() - startedAt);
     setStatus(
-      `Se convirtió con ${engineLabel(payload.engine)} en ${elapsedTime} - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`,
+      t("conversion_done", `Se convirtió con ${engineLabel(payload.engine)} en ${elapsedTime} - guardado en ${payload.output_path} - ${(payload.size / 1024).toFixed(1)} KB Markdown`, {
+        engine: engineLabel(payload.engine),
+        elapsed: elapsedTime,
+        path: payload.output_path,
+        size: (payload.size / 1024).toFixed(1),
+      }),
       "success",
     );
   } catch (error) {
     currentMarkdown = "";
-    preview.textContent = "No hay contenido para mostrar.";
+    preview.textContent = t("no_preview", "No hay contenido para mostrar.");
     setStatus(error.message, "error");
   } finally {
     stopConversionProgress();
@@ -240,15 +258,15 @@ async function handleSubmit(event) {
  */
 async function handleCopy() {
   if (!currentMarkdown) {
-    setStatus("Todavía no hay Markdown para copiar.", "error");
+    setStatus(t("no_markdown_to_copy", "Todavía no hay Markdown para copiar."), "error");
     return;
   }
 
   try {
     await navigator.clipboard.writeText(currentMarkdown);
-    setStatus("Markdown copiado al portapapeles.", "success");
+    setStatus(t("copied", "Markdown copiado al portapapeles."), "success");
   } catch (_error) {
-    setStatus("No se pudo copiar el Markdown al portapapeles.", "error");
+    setStatus(t("copy_failed", "No se pudo copiar el Markdown al portapapeles."), "error");
   }
 }
 

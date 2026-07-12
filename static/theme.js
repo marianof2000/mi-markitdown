@@ -1,5 +1,6 @@
 (() => {
   const root = document.documentElement;
+  const messages = window.MI_MARKITDOWN_I18N || {};
 
   try {
     const storedTheme = localStorage.getItem("theme");
@@ -29,7 +30,9 @@
     const isDark = activeTheme() === "dark";
     toggle.setAttribute(
       "aria-label",
-      isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
+      isDark
+        ? messages.theme_to_light || "Cambiar a modo claro"
+        : messages.theme_to_dark || "Cambiar a modo oscuro",
     );
     toggle.setAttribute("aria-pressed", String(isDark));
     if (icon) {
